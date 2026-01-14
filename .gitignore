@@ -1,0 +1,12 @@
+cat > .gitignore <<'EOF'
+build/
+logs/
+matrix/
+*.mtx
+*.out
+*.err
+*.log
+.DS_Store
+.vscode/
+EOF
+

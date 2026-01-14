@@ -1,0 +1,42 @@
+#!/bin/bash
+#PBS -N make_matrix
+#PBS -q short_cpuQ
+#PBS -l select=1:ncpus=1:mem=2gb
+#PBS -l walltime=00:20:00
+#PBS -o logs/make_matrix.out
+#PBS -e logs/make_matrix.err
+
+set -euo pipefail
+cd "$PBS_O_WORKDIR" || exit 1
+
+: "${RC:?RC not set (rows per rank)}"
+: "${NNZ_ROW:?NNZ_ROW not set (K per row)}"
+: "${SERIES:?SERIES not set (e.g. w100k)}"
+
+MAXP="${MAXP:-128}"
+SEED="${SEED:-1}"
+
+OUTDIR="matrix/syn"
+EXE="build/make_mtx"
+
+mkdir -p "$OUTDIR" logs build
+
+g++ -O3 -DNDEBUG -std=c++11 src/make_mtx.cpp -o "$EXE"
+
+p=1
+while (( p <= MAXP )); do
+  N=$((RC * p))
+
+  if (( NNZ_ROW > N )); then
+    echo "SKIP p=$p (K=$NNZ_ROW > N=$N)"
+    p=$((p * 2))
+    continue
+  fi
+
+  out="${OUTDIR}/${SERIES}_p${p}.mtx"
+  echo "GEN p=$p N=$N K=$NNZ_ROW seed=$SEED -> $out"
+  "$EXE" "$N" "$N" "$NNZ_ROW" "$out" "$SEED"
+
+  p=$((p * 2))
+done
+

@@ -1,0 +1,45 @@
+#!/bin/bash
+#PBS -N strong_spmv
+#PBS -o logs/strong.out
+#PBS -e logs/strong.err
+#PBS -q short_cpuQ
+#PBS -l walltime=00:20:00
+#PBS -l select=4:ncpus=32:mpiprocs=32:mem=2gb
+
+set -euo pipefail
+cd "$PBS_O_WORKDIR" || exit 1
+
+module purge
+module load gcc91
+module load mpich-3.2.1--gcc-9.1.0
+
+: "${MTX:?MTX not set (es: cavity07.mtx)}"
+
+MTXDIR="matrix"
+if [[ "$MTX" != */* ]]; then
+  MTX="${MTXDIR}/${MTX}"
+fi
+
+OUTDIR="${OUTDIR:-results}"
+NITER="${NITER:-10}"
+WARMUP="${WARMUP:-1}"
+
+mkdir -p "$OUTDIR" logs build
+
+EXE="build/spmv"
+mpicxx -O3 -DNDEBUG -std=c++11 -o "$EXE" src/spmv.cpp
+
+export NITER WARMUP
+
+stem=$(basename "$MTX" .mtx)
+rm -f "$OUTDIR/${stem}_strong.csv"
+
+P_LIST=(1 2 4 8 16 32 64 128)
+
+for NP in "${P_LIST[@]}"; do
+  echo "RUN strong: NP=$NP MTX=$MTX"
+  mpirun -np "$NP" "$EXE" "$MTX" "$OUTDIR"
+done
+
+echo "DONE. Output in $OUTDIR"
+
