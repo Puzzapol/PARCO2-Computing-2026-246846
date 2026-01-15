@@ -76,14 +76,16 @@ cd ~/repo
 ### 1) Generate synthetic matrices (weak scaling inputs)
 This step generates matrices in `matrix/syn/`.
 
-qsub -v RC=1000,NNZ_ROW=100,SERIES=w100k  scripts/make_mtx.pbs && \
-qsub -v RC=1000,NNZ_ROW=500,SERIES=w500k scripts/make_mtx.pbs && \
-qsub -v RC=1000,NNZ_ROW=1000,SERIES=w1m  scripts/make_mtx.pbs
+qsub -v RC=6250,NNZ_ROW=16,SERIES=w100k,MAXP=128,SEED=1 scripts/make_mtx.pbs &&
+qsub -v RC=62500,NNZ_ROW=16,SERIES=w1m,MAXP=128,SEED=1 scripts/make_mtx.pbs &&
+qsub -v RC=31250,NNZ_ROW=16,SERIES=w500k,MAXP=128,SEED=1 scripts/make_mtx.pbs
+
 
 Parameters:
 - RC: base size multiplier (matrix size is N = RC * p, square matrix)
 - NNZ_ROW: number of non-zeros per row (K)
 - SERIES: prefix for generated files (e.g., w100k)
+- MAXP: maximum number of cspus
 
 Outputs:
 - matrix/syn/<SERIES>_p<P>.mtx
